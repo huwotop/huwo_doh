@@ -1,0 +1,7 @@
+# 复制为 .dev.vars 后填入自己的值(该文件已被 .gitignore 忽略)
+# 生成随机路径:echo "/doh-$(openssl rand -hex 12)"
+DOH_PATH=/doh-0123456789abcdef01234567
+
+# 可选。留空则仅用路径鉴权;设置后客户端需带 Authorization: Bearer <token>
+# 生成:openssl rand -hex 24
+DOH_TOKEN=
