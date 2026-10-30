@@ -91,6 +91,11 @@ export default {
     // GET 带 name 参数的是 JSON 查询;RFC 8484 的 GET(?dns=)和 POST 都是 wireformat
     headers.set('accept', isJsonQuery ? 'application/dns-json' : 'application/dns-message')
 
+    // POST 必须带 content-type,否则上游直接回 415
+    if (request.method === 'POST') {
+      headers.set('content-type', 'application/dns-message')
+    }
+
     // ===== 7. 命中缓存直接返回 =====
     const cache = caches.default
     if (cacheKey) {

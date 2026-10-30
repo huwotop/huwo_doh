@@ -173,6 +173,29 @@ curl "https://huwo-doh.example.workers.dev/doh-abc123?name=example.com&type=A&to
   (本项目已开启 `redact_query_string`,但仍建议用 header)。
 - 更换路径或令牌后在控制台更新变量并重新部署,旧地址立即失效。
 
+## 验证部署是否正常
+
+把 `<域名>` 和 `<DOH_PATH>` 换成自己的值,逐条执行:
+
+```bash
+# 1. JSON 查询:应返回 200 + {"Status":0,...,"Answer":[...]}
+curl "https://<域名><DOH_PATH>?name=example.com&type=A" -H "accept: application/dns-json"
+
+# 2. 错误路径:应返回 404
+curl -o /dev/null -w "%{http_code}\n" "https://<域名>/wrong"
+
+# 3. 非法方法:应返回 405
+curl -o /dev/null -w "%{http_code}\n" -X DELETE "https://<域名><DOH_PATH>"
+
+# 4. wireformat POST:应返回 200,响应体为二进制 DNS 报文
+curl "https://<域名><DOH_PATH>" -X POST \
+  -H "content-type: application/dns-message" -H "accept: application/dns-message" \
+  --data-binary @query.bin -o resp.bin -w "%{http_code}\n"
+```
+
+成功时的响应头应包含 `x-cache: MISS`(首次)或 `x-cache: HIT`(命中缓存),以及
+`cache-control: private, max-age=<DNS TTL>`。
+
 ## 故障排查
 
 | 现象 | 原因 / 处理 |
