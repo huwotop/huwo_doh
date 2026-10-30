@@ -196,6 +196,45 @@ curl "https://<域名><DOH_PATH>" -X POST \
 成功时的响应头应包含 `x-cache: MISS`(首次)或 `x-cache: HIT`(命中缓存),以及
 `cache-control: private, max-age=<DNS TTL>`。
 
+## 在 Debian / Ubuntu 上自检
+
+```bash
+sudo apt update && sudo apt install -y curl jq        # 可选:knot-dnsutils 用于 kdig 测试
+git clone https://github.com/huwotop/huwo_doh.git && cd huwo_doh
+chmod +x scripts/check-doh.sh
+
+# 一键自检(逐项检查 JSON / 404 / 405 / wireformat GET / POST / 缓存)
+./scripts/check-doh.sh https://doh.huwo.kdns.fr/m8f2c3w1d3
+
+# 设了 DOH_TOKEN 时
+./scripts/check-doh.sh https://doh.huwo.kdns.fr/m8f2c3w1d3 --token <DOH_TOKEN>
+```
+
+脚本输出 `[OK]/[FAIL]` 与最终统计,任一项失败以退出码 1 结束,可直接接监控。
+
+手工验证缓存最直接的办法 —— 连续两次看 `x-cache` 头:
+
+```bash
+for i in 1 2 3; do
+  curl -s -o /dev/null -D - \
+    "https://doh.huwo.kdns.fr/m8f2c3w1d3?name=example.com&type=A" \
+    -H 'accept: application/dns-json' | grep -iE 'x-cache|x-dns-ttl'
+done
+# 期望:MISS → HIT → HIT
+```
+
+注意两点:
+
+- 缓存按 Cloudflare 机房隔离(看 `cf-ray` 的后缀,如 `-LAX`/`-HKG`),
+  跨机房必然各自 MISS;只有同一机房重复查询才会 HIT。
+- `POST`(wireformat)按设计不缓存,永远没有 `x-cache: HIT`。
+
+用标准 DoH 客户端验证(需 `knot-dnsutils`):
+
+```bash
+kdig +https=/m8f2c3w1d3 @doh.huwo.kdns.fr example.com A +short
+```
+
 ## 故障排查
 
 | 现象 | 原因 / 处理 |
